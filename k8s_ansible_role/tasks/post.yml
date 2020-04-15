@@ -1,0 +1,15 @@
+---
+   - name: Copying required files
+     shell: |
+      mkdir -p $HOME/.kube
+      sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+      sudo chown $(id -u):$(id -g) $HOME/.kube/config
+      
+   - name: displaying status
+     shell: kubectl get nodes
+     register: oput
+
+   - debug: 
+       var: oput.stdout_lines
+...
+

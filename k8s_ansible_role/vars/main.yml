@@ -1,0 +1,24 @@
+---
+# vars file for newrole
+packages:
+  - kubelet
+  - kubeadm
+  - kubectl
+
+services:
+  - kubelet
+  - firewalld
+
+ports:
+  - 6443/tcp
+  - 2379/tcp
+  - 2380/tcp
+  - 10250/tcp
+  - 10251/tcp
+  - 10252/tcp
+  - 10255/tcp
+
+token_file: join_token
+
+ad_addr: 192.168.21.79
+cidr_v: 172.128.0.0/16

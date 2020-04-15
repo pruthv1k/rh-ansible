@@ -1,0 +1,25 @@
+--- 
+  - name: Pulling images required for setting up a Kubernetes cluster
+    shell: "kubeadm config images pull"
+
+  - name: Reseting kubeadm before Initiating ----------
+    shell: "kubeadm reset -f"
+    ignore_errors: True
+
+  - name: Initializing Kubernetes cluster
+    shell: "kubeadm init --apiserver-advertise-address {{ad_addr}}"
+    register: output
+
+  - name: Storing token for clustering purpose
+    local_action: copy content={{ output.stdout }} dest={{ token_file }}
+
+  - name: Copying required files and giving privileges for the current logged is user for the           cluster management
+    shell: |
+     mkdir -p $HOME/.kube
+     sudo cp -f /etc/kubernetes/admin.conf $HOME/.kube/config 
+     sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+#  - name: Install Network Add-on
+#    command: "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+...
+

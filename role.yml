@@ -1,0 +1,6 @@
+---
+- name: Installing K8s cluster
+  hosts: all
+  roles:
+    - newrole
+...
