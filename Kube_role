@@ -2,5 +2,5 @@
 - name: Installing K8s cluster
   hosts: all
   roles:
-    - newrole
+    - k8s_ansible_role
 ...
