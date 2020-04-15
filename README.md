@@ -21,3 +21,11 @@ Steps to execute the role for deploying the cluster.
 1. change the api-server {master node address } in the vars/main.yml file.
 2. Execute the Ansible Playbbok using
      - ansible-playbook newRole.yml
+     
+Author information
+------------------
+
+Pruthvi S Kumar 
+
+email - pruthviskumar@hotmail.com
+
