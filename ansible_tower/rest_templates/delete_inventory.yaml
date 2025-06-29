@@ -1,0 +1,9 @@
+rest_calls:
+  - path: /api/v2/inventories/{{INVENTORY_ID}}/
+    method: DELETE
+    headers:
+      Content-type: application/json
+      Authorization: Basic {{AUTHENTICATION}}
+    payload:
+    response_format: raw
+    recoverable_codes: [400]

@@ -1,0 +1,108 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+description: >
+  This blueprint creates an EKS cluster in AWS using Terraform
+
+imports:
+  - http://cloudify.co/spec/cloudify/6.3.1/types.yaml
+  - plugin:cloudify-terraform-plugin
+
+inputs:
+
+  region:
+    type: string
+    description: Name of the AWS region to deploy VPC into
+    display_label: Region Name
+    default: us-west-1
+    constraints:
+      - valid_values:
+        - us-east-1
+        - us-west-1
+        - ca-central-1
+        - eu-west-1
+
+  vpc_id:
+    type: string
+    description: ID of the VPC to deploy EKS cluster into
+    display_label: VPC ID
+
+  cluster_name:
+    type: string
+    description: Name of the VPC cluster to deploy
+    default: example-cluster
+    display_label: Cluster Name
+
+  kubernetes_version:
+    type: string
+    description: Version of Kubernetes to deploy
+    display_label: Kubernetes Version
+    default: "1.20"
+
+  instance_type:
+    type: string
+    description: Managed node group instance size to use
+    display_label: Instance Type
+    default: t3.medium
+
+  node_group_name:
+    type: string
+    description: Name of the EKS managed node group
+    display_label: Node Group Name
+    default: example-nodes
+
+  minimum_nodes:
+    type: integer
+    description: Minimum number of nodes in the node group
+    display_label: Minimum Nodes
+    default: 1
+
+  maximum_nodes:
+    type: integer
+    description: Maximum number of nodes in the node group
+    display_label: Maximum nodes
+    default: 3
+
+  desired_nodes:
+    type: integer
+    description: Desired number of nodes in the node group
+    display_label: Desired nodes
+    default: 1
+
+  subnet_ids:
+    type: list
+    description: Subnet IDs to deploy EKS nodes into
+    display_label: Subnet IDs
+
+node_templates:
+
+  terraform:
+    type: cloudify.nodes.terraform
+    properties:
+      resource_config:
+        installation_source: https://releases.hashicorp.com/terraform/1.1.7/terraform_1.1.7_linux_amd64.zip
+    
+  eks-cluster:
+    type: cloudify.nodes.terraform.Module
+    properties:
+      resource_config:
+        source:
+          location: eks/module.zip
+        variables:
+          region: { get_input: region }
+          vpc_id: { get_input: vpc_id }
+          cluster_name: { get_input: cluster_name }
+          kubernetes_version: { get_input: kubernetes_version }
+          instance_type: { get_input: instance_type }
+          node_group_name: { get_input: node_group_name }
+          minimum_nodes: { get_input: minimum_nodes }
+          maximum_nodes: { get_input: maximum_nodes }
+          desired_nodes: { get_input: desired_nodes }
+          subnet_ids: { get_input: subnet_ids }
+    relationships:
+      - target: terraform
+        type: cloudify.terraform.relationships.run_on_host
+
+capabilities:
+
+  cluster_endpoint:
+    value: { get_attributes_list: [ eks-cluster, outputs, cluster_endpoint, value ] }

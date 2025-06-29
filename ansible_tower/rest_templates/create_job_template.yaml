@@ -1,0 +1,16 @@
+rest_calls:
+  - path: /api/v2/job_templates/
+    method: POST
+    headers:
+      Content-type: application/json
+      Authorization: Basic {{AUTHENTICATION}}
+    payload:
+      name: {{JOB_TEMPLATE_NAME}}
+      description: {{DESCRIPTION}}
+      job_type: run
+      inventory: {{INVENTORY_ID}}
+      project: {{PROJECT_ID}}
+      playbook: {{PLAYBOOK_NAME}}
+    response_format: json
+    recoverable_codes: [200]
+    response_translation: [job_template]

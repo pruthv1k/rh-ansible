@@ -1,0 +1,8 @@
+rest_calls:
+  - path: /api/v2/projects/{{PROJECT_ID}}/
+    method: DELETE
+    headers:
+      Content-type: application/json
+      Authorization: Basic {{AUTHENTICATION}}
+    payload:
+    response_format: raw

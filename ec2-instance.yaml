@@ -1,0 +1,96 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+description: >
+  This blueprint creates an EC2 instance in AWS using Terraform
+
+imports:
+  - http://cloudify.co/spec/cloudify/6.3.1/types.yaml
+  - plugin:cloudify-terraform-plugin
+
+inputs:
+
+  region:
+    type: string
+    description: Name of the AWS region to deploy VPC into
+    display_label: Region Name
+    default: us-west-1
+    constraints:
+      - valid_values:
+        - us-east-1
+        - us-west-1
+        - ca-central-1
+        - eu-west-1
+
+  instance_name:
+    type: string
+    description: Name of the EC2 instance to deploy
+    display_label: EC2 Instance Name
+    default: example-instance
+
+  instance_type:
+    type: string
+    description: The type/size of EC2 instance
+    display_label: EC2 Instance Type
+    default : t2.micro
+    constraints:
+      - valid_values:
+          - t2.micro
+          - t2.small
+          - t2.medium
+
+  ami_id:
+    type: string
+    description: AMI ID for the EC2 instance
+    display_label: EC2 Instance AMI ID
+    default: ''
+
+  key_name:
+    type: string
+    description: SSH key name for accessing EC2 instance
+    display_label: Key Name
+
+  monitoring_enabled:
+    type: boolean
+    description: Whether or not to enable EC2 instance monitoring
+    display_label: Enable Monitoring
+    default: false
+
+  subnet_id:
+    description: Subnet ID to place instance into
+    display_label: Subnet ID For EC2 Instance
+
+node_templates:
+
+  terraform:
+    type: cloudify.nodes.terraform
+    properties:
+      resource_config:
+        installation_source: https://releases.hashicorp.com/terraform/1.1.7/terraform_1.1.7_linux_amd64.zip
+
+  instance:
+    type: cloudify.nodes.terraform.Module
+    properties:
+      resource_config:
+        source:
+          location: ec2/module.zip
+        variables:
+          region: { get_input: region }
+          instance_name: { get_input: instance_name }
+          instance_type: { get_input: instance_type }
+          ami_id: { get_input: ami_id }
+          key_name: { get_input: key_name }
+          monitoring_enabled: { get_input: monitoring_enabled }
+          subnet_id: { get_input: subnet_id }
+    relationships:
+      - target: terraform
+        type: cloudify.terraform.relationships.run_on_host
+
+capabilities:
+  instance_id:
+    value: { get_attributes_list: [ instance, outputs, instance_id, value ] }
+
+  instance_private_ip:
+    value: { get_attribute: [ instance, resources, this, instances, 0, attributes, private_ip ] }
+
+  instance_public_ip:
+    value: { get_attribute: [ instance, resources, this, instances, 0, attributes, public_ip ] }

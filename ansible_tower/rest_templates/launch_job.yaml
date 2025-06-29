@@ -1,0 +1,9 @@
+rest_calls:
+  - path: /api/v2/job_templates/{{JOB_TEMPLATE_ID}}/launch/
+    method: POST
+    headers:
+      Content-type: application/json
+      Authorization: Basic {{AUTHENTICATION}}
+    payload:
+    response_format: json
+    response_translation: [launch_job]

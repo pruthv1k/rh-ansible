@@ -1,0 +1,15 @@
+rest_calls:
+  - path: /api/v2/projects/
+    method: POST
+    headers:
+      Content-type: application/json
+      Authorization: Basic {{AUTHENTICATION}}
+    payload:
+      name: {{NAME}}
+      description: {{DESCRIPTION}}
+      organization: {{ORGANIZATION_ID}}
+      scm_type: {{SCM_TYPE}}
+      scm_url: {{SCM_URL}}
+    response_format: json
+    recoverable_codes: [200]
+    response_translation: [project]

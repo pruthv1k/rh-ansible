@@ -1,0 +1,12 @@
+rest_calls:
+  - path: /api/v2/inventories/{{INVENTORY_ID}}/hosts/
+    method: POST
+    headers:
+      Content-type: application/json
+      Authorization: Basic {{AUTHENTICATION}}
+    payload:
+      name: {{HOST_IP}}
+      description: {{DESCRIPTION}}
+    response_format: json
+    recoverable_codes: [200]
+    response_translation: [host]

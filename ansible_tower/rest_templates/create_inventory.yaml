@@ -1,0 +1,13 @@
+rest_calls:
+  - path: /api/v2/inventories/
+    method: POST
+    headers:
+      Content-type: application/json
+      Authorization: Basic {{AUTHENTICATION}}
+    payload:
+      name: {{NAME}}
+      description: {{DESCRIPTION}}
+      organization: {{ORGANIZATION_ID}}
+    response_format: json
+    recoverable_codes: [200]
+    response_translation: [inventory]

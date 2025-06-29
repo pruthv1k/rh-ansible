@@ -1,0 +1,159 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+description: >
+  This blueprint communicates with Ansible Tower via REST API.
+
+imports:
+  - http://cloudify.co/spec/cloudify/6.3.1/types.yaml
+  - plugin:cloudify-utilities-plugin
+
+inputs:
+
+  ansible_tower_endpoint:
+    type: string
+    description: |
+      An endpoint of a reachable Ansible Tower instance.
+      Should not contain http:// nor https:// prefix. Those are set up in use_ssl input.
+    display_label: Ansible Tower Endpoint
+
+  ansible_tower_use_ssl:
+    type: boolean
+    default: true
+    display_label: Ansible Tower Use SSL Connection
+
+  ansible_tower_username:
+    type: string
+    default: { get_secret: ANSIBLE_TOWER_USERNAME }
+    display_label: Ansible Tower User Name
+
+  ansible_tower_password:
+    type: string
+    default: { get_secret: ANSIBLE_TOWER_PASSWORD }
+    display_label: Ansible Tower User Password
+
+  ansible_tower_playbook_name:
+    type: string
+    default: 'playbook_revert.yaml'
+    description: |
+      Name of the Ansible Playbook from SCM URL that should be executed.
+    display_label: Ansible Playbook Name
+
+  ansible_tower_deployment_id:
+    type: string
+    display_label: Ansible Tower Install Deployment ID
+
+  ec2_username:
+    type: string
+    default: ubuntu
+    display_label: EC2 Instance User Name
+
+
+node_templates:
+
+  ansible_tower_credentials:
+    type: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        start:
+          implementation: ansible_tower/scripts/prepare_credentials.py
+          executor: central_deployment_agent
+          inputs:
+            ANSIBLE_TOWER_USERNAME: { get_input: ansible_tower_username }
+            ANSIBLE_TOWER_PASSWORD: { get_input: ansible_tower_password }
+
+  ansible_tower_job_template:
+    type: cloudify.rest.Requests
+    properties:
+      hosts: [{ get_input: ansible_tower_endpoint }]
+      ssl: { get_input: ansible_tower_use_ssl }
+      verify: false
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        start:
+          inputs:
+            template_file: ansible_tower/rest_templates/create_job_template.yaml
+            prerender: true
+            save_to: job_template
+            params:
+              AUTHENTICATION: { get_secret: ANSIBLE_TOWER_AUTHENTICATION }
+              JOB_TEMPLATE_NAME: delete_file
+              DESCRIPTION: 'Deletes a file on EC2 instance'
+              INVENTORY_ID: { get_capability: [{ get_input: ansible_tower_deployment_id }, inventory_id] }
+              PROJECT_ID: { get_capability: [{ get_input: ansible_tower_deployment_id }, project_id] }
+              PLAYBOOK_NAME: { get_input: ansible_tower_playbook_name }
+        stop:
+          inputs:
+            template_file: ansible_tower/rest_templates/delete_job_template.yaml
+            prerender: true
+            params:
+              AUTHENTICATION: { get_secret: ANSIBLE_TOWER_AUTHENTICATION }
+              JOB_TEMPLATE_ID: { get_attribute: [SELF, result_properties, job_template, id] }
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: ansible_tower_credentials
+
+  ansible_tower_credential:
+    type: cloudify.rest.Requests
+    properties:
+      hosts: [{ get_input: ansible_tower_endpoint }]
+      ssl: { get_input: ansible_tower_use_ssl }
+      verify: false
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        start:
+          inputs:
+            template_file: ansible_tower/rest_templates/create_credential.yaml
+            prerender: true
+            save_to: credential
+            params:
+              AUTHENTICATION: { get_secret: ANSIBLE_TOWER_AUTHENTICATION }
+              JOB_TEMPLATE_ID: { get_attribute: [ansible_tower_job_template, result_properties, job_template, id] }
+              NAME: VM_credentials
+              DESCRIPTION: 'Credentials to access the EC2 created by Cloudify'
+              TYPE: '1'
+              EC2_USER: { get_input: ec2_username }
+              SSH_KEY_DATA: { get_secret: SSH_KEY_DATA }
+        stop:
+          inputs:
+            template_file: ansible_tower/rest_templates/delete_credential.yaml
+            prerender: true
+            params:
+              AUTHENTICATION: { get_secret: ANSIBLE_TOWER_AUTHENTICATION }
+              CREDENTIAL_ID: { get_attribute: [SELF, result_properties, credential, id] }
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: ansible_tower_job_template
+
+  ansible_tower_launch_job:
+    type: cloudify.rest.Requests
+    properties:
+      hosts: [{ get_input: ansible_tower_endpoint }]
+      ssl: { get_input: ansible_tower_use_ssl }
+      verify: false
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        start:
+          inputs:
+            template_file: ansible_tower/rest_templates/launch_job.yaml
+            prerender: true
+            save_to: launch_job
+            params:
+              AUTHENTICATION: { get_secret: ANSIBLE_TOWER_AUTHENTICATION }
+              JOB_TEMPLATE_ID: { get_attribute: [ansible_tower_job_template, result_properties, job_template, id] }
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: ansible_tower_job_template
+      - type: cloudify.relationships.depends_on
+        target: ansible_tower_credential
+
+
+capabilities:
+
+  job_template_id:
+    value: { get_attribute: [ansible_tower_job_template, result_properties, job_template, id] }
+
+  credential_id:
+    value: { get_attribute: [ansible_tower_credential, result_properties, credential, id] }
+
+  job_id:
+    value: { get_attribute: [ansible_tower_launch_job, result_properties, launch_job, id] }

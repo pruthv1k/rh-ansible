@@ -1,0 +1,9 @@
+rest_calls:
+  - path: /api/v2/job_templates/{{JOB_TEMPLATE_ID}}/
+    method: DELETE
+    headers:
+      Content-type: application/json
+      Authorization: Basic {{AUTHENTICATION}}
+    payload:
+    response_format: raw
+    recoverable_codes: [409]
